@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>TreeMap — See exactly where your disk space went</title>
+    <meta
+      name="description"
+      content="TreeMap scans your disk and turns it into a squarified treemap — every file sized and colored by what it costs you. Free, open source, macOS/Windows/Linux."
+    />
+    <link rel="canonical" href="https://treemap-landing.vercel.app/" />
+
+    <meta property="og:title" content="TreeMap — See exactly where your disk space went" />
+    <meta
+      property="og:description"
+      content="A free, open-source disk-space visualizer. Squarified treemap, duplicate detection, disk-full forecasting, and safe cleanup."
+    />
+    <meta property="og:image" content="https://treemap-landing.vercel.app/og-image.png" />
+    <meta property="og:url" content="https://treemap-landing.vercel.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TreeMap" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TreeMap — See exactly where your disk space went" />
+    <meta
+      name="twitter:description"
+      content="A free, open-source disk-space visualizer. Squarified treemap, duplicate detection, disk-full forecasting, and safe cleanup."
+    />
+    <meta name="twitter:image" content="https://treemap-landing.vercel.app/og-image.png" />
+
+    <meta name="theme-color" content="#0a0f1c" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <style>
+      /* Critical pre-JS paint: brand void background so there is never a white flash. */
+      html {
+        background-color: #0a0f1c;
+      }
+      body {
+        margin: 0;
+        background-color: #0a0f1c;
+        color: #ffffff;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 3rem 1.5rem; max-width: 40rem; margin: 0 auto; line-height: 1.6">
+        <h1 style="font-size: 1.6rem">TreeMap — see exactly where your disk space went</h1>
+        <p style="color: #cbd5e1">
+          This page uses JavaScript for its 3D visualization. The app itself doesn't need it —
+          grab TreeMap directly from
+          <a style="color: #2dd4bf" href="https://github.com/Prithvi-Web/TreeMap-Disk-Visualizer">GitHub</a>.
+        </p>
+      </div>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
