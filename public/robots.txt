@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://treemap-landing.vercel.app/sitemap.xml
+Sitemap: https://tree-map-landing-page.vercel.app/sitemap.xml
