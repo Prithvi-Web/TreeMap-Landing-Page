@@ -27,7 +27,9 @@ export function useScrollTimeline(
       start: 'top top',
       end: `+=${lengthPx}`,
       pin: true,
-      scrub: 1,
+      // 1.5s catch-up: fast flicks glide through the morph instead of
+      // jumping — tuned down after real-scroll feedback that 1 felt twitchy.
+      scrub: 1.5,
       anticipatePin: 1,
       invalidateOnRefresh: true,
       onUpdate: (self) => scrollState.setProgress(self.progress),

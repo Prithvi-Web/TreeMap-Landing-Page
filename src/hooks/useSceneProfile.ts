@@ -18,7 +18,7 @@ const PROFILES: Array<{ min: number; profile: SceneProfile }> = [
     profile: {
       cubeCount: 320,
       dprCap: 2,
-      scrollLen: 4500,
+      scrollLen: 7200,
       fov: 50,
       layout: { w: 16, h: 10 },
       fogDensity: 0.016,
@@ -30,7 +30,7 @@ const PROFILES: Array<{ min: number; profile: SceneProfile }> = [
     profile: {
       cubeCount: 180,
       dprCap: 1.75,
-      scrollLen: 4000,
+      scrollLen: 5800,
       fov: 52,
       layout: { w: 14, h: 10 },
       fogDensity: 0.018,
@@ -42,7 +42,7 @@ const PROFILES: Array<{ min: number; profile: SceneProfile }> = [
     profile: {
       cubeCount: 90,
       dprCap: 1.5,
-      scrollLen: 3200,
+      scrollLen: 4600,
       fov: 58,
       layout: { w: 10, h: 12.5 },
       fogDensity: 0.024,
