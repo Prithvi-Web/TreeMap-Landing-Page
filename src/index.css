@@ -189,6 +189,13 @@ body {
   color: var(--color-muted);
 }
 
+/* Marquee outline row (§Kinetic 3): hollow stroke type, same weight as the
+   gradient row above it. */
+.marquee-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.22);
+}
+
 /* HUD telemetry type (§Kinetic 2): terminal-flavored mono for the corner
    HUD and the scan counter. */
 .hud-mono {

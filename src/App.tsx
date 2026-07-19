@@ -2,6 +2,8 @@ import { useRef } from 'react'
 import CanvasRoot from './components/scene/CanvasRoot'
 import Nav from './components/sections/Nav'
 import StorySection from './components/sections/StorySection'
+import MarqueeBand from './components/sections/MarqueeBand'
+import StatsWall from './components/sections/StatsWall'
 import FeatureHighlights from './components/sections/FeatureHighlights'
 import CTASection from './components/sections/CTASection'
 import Footer from './components/sections/Footer'
@@ -35,6 +37,8 @@ export default function App() {
         <div id="smooth-content">
           <main className="relative z-10">
             <StorySection pinRef={pinRef} reduced={reduced} />
+            <MarqueeBand reduced={reduced} />
+            <StatsWall reduced={reduced} />
             <FeatureHighlights reduced={reduced} />
             <CTASection reduced={reduced} />
           </main>
