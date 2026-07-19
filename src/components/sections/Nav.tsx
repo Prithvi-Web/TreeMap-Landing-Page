@@ -4,27 +4,43 @@ import { GitHubIcon } from '../ui/BrandIcons'
 import { REPO_URL, useStarCount } from '../../lib/github'
 import iconUrl from '../../assets/treemap-icon.svg'
 
-export default function Nav() {
+export default function Nav({ reduced = false }: { reduced?: boolean }) {
   const stars = useStarCount()
   const [scrolled, setScrolled] = useState(false)
+  const [hidden, setHidden] = useState(false)
 
   useEffect(() => {
     let ticking = false
+    let lastY = window.scrollY
     const onScroll = () => {
       if (ticking) return
       ticking = true
       requestAnimationFrame(() => {
-        setScrolled(window.scrollY > 32)
+        const y = window.scrollY
+        setScrolled(y > 32)
+        // Duck out of the way going down, glide back the moment you reverse
+        // (§Kinetic 4). Never while the hero is on screen; calm tier keeps
+        // the nav pinned in place.
+        if (!reduced) {
+          const delta = y - lastY
+          if (delta > 8 && y > 200) setHidden(true)
+          else if (delta < -4 || y <= 200) setHidden(false)
+        }
+        lastY = y
         ticking = false
       })
     }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  }, [reduced])
 
   return (
-    <header className="fixed inset-x-0 top-0 z-40 px-4 pt-3 sm:px-6">
+    <header
+      className={`fixed inset-x-0 top-0 z-40 px-4 pt-3 transition-transform duration-300 ease-out sm:px-6 ${
+        hidden ? '-translate-y-[115%]' : 'translate-y-0'
+      }`}
+    >
       <div
         className={`mx-auto flex max-w-6xl items-center justify-between rounded-2xl px-4 py-2.5 transition-all duration-300 sm:px-5 ${
           scrolled ? 'glass-soft' : 'border border-transparent'

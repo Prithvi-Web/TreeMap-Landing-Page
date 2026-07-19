@@ -12,6 +12,7 @@ import { useSceneProfile } from './hooks/useSceneProfile'
 import { useCalmMode } from './hooks/useCalmMode'
 import { useScrollTimeline } from './hooks/useScrollTimeline'
 import { useSmoothScroll } from './hooks/useSmoothScroll'
+import { useVelocitySkew } from './hooks/useVelocitySkew'
 
 export default function App() {
   const profile = useSceneProfile()
@@ -24,6 +25,7 @@ export default function App() {
   // the first paint gets a collapsed scroll range until the next refresh.
   useScrollTimeline(pinRef, profile.scrollLen, !reduced)
   useSmoothScroll(!reduced)
+  useVelocitySkew(!reduced)
 
   // Fixed-position layers (progress bar, canvas, nav) live OUTSIDE the
   // smoother's content: ScrollSmoother translates #smooth-content, and
@@ -32,7 +34,7 @@ export default function App() {
     <div id="top">
       {!reduced && <ScrollProgressBar />}
       <CanvasRoot profile={profile} reduced={reduced} webgl={webgl} />
-      <Nav />
+      <Nav reduced={reduced} />
       <div id="smooth-wrapper">
         <div id="smooth-content">
           <main className="relative z-10">
@@ -42,7 +44,7 @@ export default function App() {
             <FeatureHighlights reduced={reduced} />
             <CTASection reduced={reduced} />
           </main>
-          <Footer />
+          <Footer reduced={reduced} />
         </div>
       </div>
     </div>
