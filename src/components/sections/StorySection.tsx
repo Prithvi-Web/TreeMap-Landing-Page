@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import { gsap, SplitText } from '../../lib/gsapSetup'
 import { scrollState } from '../../lib/scrollState'
 import { clamp01, smoothstep } from '../../lib/stages'
+import { introPlanned, INTRO_HERO_DELAY } from '../../lib/introGate'
 
 /**
  * The pinned story (§7): four overlay copy groups that fade through the same
@@ -132,12 +133,15 @@ export default function StorySection({ pinRef, reduced }: StorySectionProps) {
         })
         splits.push(split)
         heroLines.current = split.lines as HTMLElement[]
+        // When the intro overlay runs this load, the hero emerges just as the
+        // veil lifts instead of finishing unseen behind it.
+        const wait = introPlanned ? INTRO_HERO_DELAY : 0
         gsap.from(split.chars, {
           yPercent: 112,
           duration: 0.85,
           stagger: 0.016,
           ease: 'power4.out',
-          delay: 0.1,
+          delay: 0.1 + wait,
         })
         // Scoped to the hero copy box, NOT the story root — the scroll cue
         // also carries data-hero-fade but keeps its own CSS loop.
@@ -146,7 +150,7 @@ export default function StorySection({ pinRef, reduced }: StorySectionProps) {
           y: 14,
           duration: 0.7,
           stagger: 0.12,
-          delay: 0.5,
+          delay: 0.5 + wait,
           ease: 'power2.out',
         })
       }

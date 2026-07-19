@@ -8,6 +8,7 @@ import FeatureHighlights from './components/sections/FeatureHighlights'
 import CTASection from './components/sections/CTASection'
 import Footer from './components/sections/Footer'
 import ScrollProgressBar from './components/ui/ScrollProgressBar'
+import IntroOverlay from './components/ui/IntroOverlay'
 import { useSceneProfile } from './hooks/useSceneProfile'
 import { useCalmMode } from './hooks/useCalmMode'
 import { useScrollTimeline } from './hooks/useScrollTimeline'
@@ -32,6 +33,7 @@ export default function App() {
   // position:fixed inside a transformed ancestor silently becomes absolute.
   return (
     <div id="top">
+      <IntroOverlay enabled={!reduced} />
       {!reduced && <ScrollProgressBar />}
       <CanvasRoot profile={profile} reduced={reduced} webgl={webgl} />
       <Nav reduced={reduced} />
