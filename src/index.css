@@ -273,6 +273,81 @@ body {
   pointer-events: none;
 }
 
+/* ------------------------------------------------------------------ */
+/* Process rail (§Kinetic-Max 1): the giant stage word on the dial      */
+/* ------------------------------------------------------------------ */
+.process-word {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.6rem, 8.5vw, 6.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.process-word-static {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------------ */
+/* Views gallery vignettes (§Kinetic-Max 2)                            */
+/* ------------------------------------------------------------------ */
+@keyframes vg-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.vg-spin {
+  animation-name: vg-spin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes vg-pulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.35);
+  }
+}
+
+.vg-pulse {
+  animation: vg-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes orbit-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.orbit-spin {
+  animation: orbit-spin 38s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vg-spin,
+  .vg-pulse,
+  .orbit-spin {
+    animation: none;
+  }
+}
+
 /* Stat chips that light up while the scanner passes (§7.3) */
 .stat-chip {
   font-family: var(--font-display);

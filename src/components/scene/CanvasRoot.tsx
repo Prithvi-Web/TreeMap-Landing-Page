@@ -40,7 +40,10 @@ export default function CanvasRoot({ profile, reduced, webgl }: CanvasRootProps)
   }, [webgl])
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
+    // id: the process rail ducks this whole layer while its dial owns the
+    // viewport (opacity tween on the container — cheaper than touching the
+    // scene), then restores it for the sections that float over the treemap.
+    <div id="scene-root" className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
       <div className="atmosphere absolute inset-0" />
       <div className="atmosphere-grid absolute inset-0" />
       {!webgl && <MosaicBackdrop />}
