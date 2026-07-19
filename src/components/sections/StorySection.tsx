@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, type ReactNode, type RefObject } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { gsap, SplitText } from '../../lib/gsapSetup'
 import { scrollState } from '../../lib/scrollState'
-import { smoothstep } from '../../lib/stages'
+import { clamp01, smoothstep } from '../../lib/stages'
 
 /**
  * The pinned story (§7): four overlay copy groups that fade through the same
@@ -13,18 +13,38 @@ import { smoothstep } from '../../lib/stages'
  * Reduced motion (§8.6): the same copy renders as calm, stacked, always-
  * visible sections instead, over the pre-assembled treemap.
  */
-type Window = { in0: number; in1: number; out0: number; out1: number; rise: number }
+type Window = {
+  in0: number
+  in1: number
+  out0: number
+  out1: number
+  rise: number
+  /** Optional horizontal settle-in (px, eased to 0 by in1). */
+  x?: number
+  /** Optional scale settle-in (eased to 1 by in1). */
+  scale?: number
+}
 
 // Fade windows tuned to §7.3's t ranges. rise = px of directional drift.
 const WINDOWS: Window[] = [
   { in0: -1, in1: -0.5, out0: 0.1, out1: 0.17, rise: -28 }, // hero (visible at t=0)
   { in0: 0.14, in1: 0.21, out0: 0.29, out1: 0.36, rise: 26 }, // chaos
   { in0: 0.38, in1: 0.45, out0: 0.58, out1: 0.65, rise: 26 }, // scanning
-  { in0: 0.42, in1: 0.47, out0: 0.575, out1: 0.635, rise: 18 }, // chip 1
-  { in0: 0.455, in1: 0.505, out0: 0.58, out1: 0.64, rise: 18 }, // chip 2
-  { in0: 0.49, in1: 0.54, out0: 0.585, out1: 0.645, rise: 18 }, // chip 3
+  { in0: 0.42, in1: 0.47, out0: 0.575, out1: 0.635, rise: 18, x: 30, scale: 0.94 }, // chip 1
+  { in0: 0.455, in1: 0.505, out0: 0.58, out1: 0.64, rise: 18, x: 30, scale: 0.94 }, // chip 2
+  { in0: 0.49, in1: 0.54, out0: 0.585, out1: 0.645, rise: 18, x: 30, scale: 0.94 }, // chip 3
   { in0: 0.66, in1: 0.74, out0: 2, out1: 3, rise: 26 }, // treemap (stays)
 ]
+
+// Word-mask scrub reveals (§Kinetic 2): map a window's entry progress to a
+// per-word cascade — word i finishes as word i+1 is mid-rise. Exit is left to
+// the group fade so headlines never disassemble while being read.
+const WORD_GROUPS = [1, 2, 6]
+const WORD_OVERLAP = 0.65
+
+// Scan telemetry the counter eases toward (echoes the copy's 500k-file scale).
+const SCAN_FILES = 412_806
+const SCAN_GB = 292
 
 const CHIP_COLORS = ['border-teal', 'border-amber', 'border-rose']
 const CHIPS = ['Squarified layout', 'Live duplicate detection', 'Zero telemetry']
@@ -38,6 +58,13 @@ export default function StorySection({ pinRef, reduced }: StorySectionProps) {
   const groupRefs = useRef<Array<HTMLElement | null>>([])
   const heroBoxRef = useRef<HTMLDivElement>(null)
   const h1Ref = useRef<HTMLHeadingElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
+  // group index -> masked word elements of that act's H2 (filled post-split)
+  const wordRefs = useRef<Map<number, HTMLElement[]>>(new Map())
+  const heroLines = useRef<HTMLElement[]>([])
+  const filesRef = useRef<HTMLSpanElement>(null)
+  const gbRef = useRef<HTMLSpanElement>(null)
+  const lastFiles = useRef(-1)
 
   // One subscription drives every overlay window.
   useLayoutEffect(() => {
@@ -51,8 +78,41 @@ export default function StorySection({ pinRef, reduced }: StorySectionProps) {
         const sOut = smoothstep(w.out0, w.out1, t)
         const o = sIn * (1 - sOut)
         el.style.opacity = String(o)
-        el.style.transform = `translateY(${((1 - sIn) * w.rise - sOut * w.rise).toFixed(2)}px)`
+        const x = w.x === undefined ? 0 : (1 - sIn) * w.x
+        const scale = w.scale === undefined ? 1 : w.scale + (1 - w.scale) * sIn
+        el.style.transform =
+          `translate(${x.toFixed(2)}px, ${((1 - sIn) * w.rise - sOut * w.rise).toFixed(2)}px)` +
+          (scale === 1 ? '' : ` scale(${scale.toFixed(4)})`)
         el.style.visibility = o < 0.015 ? 'hidden' : 'visible'
+
+        // Word cascade: each masked word rises on its own slice of the entry.
+        const words = wordRefs.current.get(i)
+        if (words) {
+          const n = words.length
+          for (let j = 0; j < n; j++) {
+            const start = (j / n) * WORD_OVERLAP
+            const p = clamp01((sIn - start) / (1 - WORD_OVERLAP))
+            const e = 1 - (1 - p) * (1 - p) // ease-out
+            words[j].style.transform = `translateY(${((1 - e) * 105).toFixed(2)}%)`
+          }
+        }
+      }
+
+      // Hero exit: the two headline lines shear apart slightly as they leave.
+      const heroOut = smoothstep(WINDOWS[0].out0, WINDOWS[0].out1, t)
+      const lines = heroLines.current
+      if (lines.length >= 2) {
+        lines[0].style.transform = `translateY(${(-heroOut * 26).toFixed(2)}px)`
+        lines[1].style.transform = `translateY(${(-heroOut * 8).toFixed(2)}px)`
+      }
+
+      // Scan counter: eases 0 → full over the sweep band, scrubbed to scroll.
+      const c = smoothstep(0.4, 0.6, t)
+      const files = Math.round(SCAN_FILES * c)
+      if (files !== lastFiles.current && filesRef.current && gbRef.current) {
+        lastFiles.current = files
+        filesRef.current.textContent = files.toLocaleString('en-US')
+        gbRef.current.textContent = String(Math.round(SCAN_GB * c))
       }
     })
   }, [reduced])
@@ -60,30 +120,51 @@ export default function StorySection({ pinRef, reduced }: StorySectionProps) {
   // Hero intro: character rise on the H1, soft fade on the supporting copy.
   // The H1's two lines are fixed by an explicit <br>, so splitting doesn't
   // need to wait for fonts — no blank-hero window on slow connections.
+  // Act H2s get masked word-splits here too; the subscriber above scrubs them.
   useLayoutEffect(() => {
     if (reduced) return
-    let split: SplitText | null = null
+    const splits: SplitText[] = []
     const ctx = gsap.context(() => {
-      if (!h1Ref.current) return
-      split = new SplitText(h1Ref.current, { type: 'lines,chars', linesClass: 'overflow-hidden' })
-      gsap.from(split.chars, {
-        yPercent: 112,
-        duration: 0.85,
-        stagger: 0.016,
-        ease: 'power4.out',
-        delay: 0.1,
-      })
-      gsap.from('[data-hero-fade]', {
-        autoAlpha: 0,
-        y: 14,
-        duration: 0.7,
-        stagger: 0.12,
-        delay: 0.5,
-        ease: 'power2.out',
-      })
-    }, heroBoxRef)
+      if (h1Ref.current) {
+        const split = new SplitText(h1Ref.current, {
+          type: 'lines,chars',
+          linesClass: 'overflow-hidden',
+        })
+        splits.push(split)
+        heroLines.current = split.lines as HTMLElement[]
+        gsap.from(split.chars, {
+          yPercent: 112,
+          duration: 0.85,
+          stagger: 0.016,
+          ease: 'power4.out',
+          delay: 0.1,
+        })
+        // Scoped to the hero copy box, NOT the story root — the scroll cue
+        // also carries data-hero-fade but keeps its own CSS loop.
+        gsap.from(heroBoxRef.current!.querySelectorAll('[data-hero-fade]'), {
+          autoAlpha: 0,
+          y: 14,
+          duration: 0.7,
+          stagger: 0.12,
+          delay: 0.5,
+          ease: 'power2.out',
+        })
+      }
+      for (const i of WORD_GROUPS) {
+        const h2 = groupRefs.current[i]?.querySelector('h2')
+        if (!h2) continue
+        const split = new SplitText(h2, { type: 'words', mask: 'words' })
+        splits.push(split)
+        wordRefs.current.set(i, split.words as HTMLElement[])
+        for (const word of split.words as HTMLElement[]) {
+          word.style.transform = 'translateY(105%)'
+        }
+      }
+    }, rootRef)
     return () => {
-      split?.revert()
+      wordRefs.current.clear()
+      heroLines.current = []
+      for (const s of splits) s.revert()
       ctx.revert()
     }
   }, [reduced])
@@ -127,6 +208,12 @@ export default function StorySection({ pinRef, reduced }: StorySectionProps) {
         a 64&nbsp;KB sample, then the full file — that finds true duplicates without choking on
         500,000 files.
       </p>
+      {/* Live scrub-driven telemetry; initial text = final values so the calm
+          tier (and no-JS) reads a finished scan. */}
+      <p className="hud-mono mt-6 text-[0.8rem] text-teal/90" aria-hidden="true">
+        <span ref={filesRef}>{SCAN_FILES.toLocaleString('en-US')}</span> files ·{' '}
+        <span ref={gbRef}>{SCAN_GB}</span> GB read
+      </p>
     </div>
   )
 
@@ -163,7 +250,15 @@ export default function StorySection({ pinRef, reduced }: StorySectionProps) {
   }
 
   return (
-    <div ref={pinRef} className="relative h-svh overflow-hidden" aria-label="How TreeMap works">
+    <div
+      ref={(el) => {
+        pinRef.current = el
+        rootRef.current = el
+      }}
+      className="relative h-svh overflow-hidden"
+      aria-label="How TreeMap works"
+    >
+      <HeroHud />
       {/* 0 · hero */}
       <section
         ref={setGroup(0)}
@@ -212,6 +307,70 @@ export default function StorySection({ pinRef, reduced }: StorySectionProps) {
       >
         {treemapCopy}
       </section>
+    </div>
+  )
+}
+
+/**
+ * Corner HUD (§Kinetic 2, cinetica's clock): version tag, live clock, and a
+ * scramble-decoded "READY TO SCAN" line. Fades out with the hero window via
+ * its own subscription — deliberately NOT a WINDOWS[] group, so the manually
+ * numbered setGroup indices stay untouched. Animated branch only.
+ */
+function HeroHud() {
+  const boxRef = useRef<HTMLDivElement>(null)
+  const clockRef = useRef<HTMLSpanElement>(null)
+  const readyRef = useRef<HTMLSpanElement>(null)
+
+  useLayoutEffect(() => {
+    const unsubscribe = scrollState.subscribe((t) => {
+      const el = boxRef.current
+      if (!el) return
+      // Mirrors the hero window's exit edge (0.10 → 0.17).
+      const o = 1 - smoothstep(0.1, 0.17, t)
+      el.style.opacity = String(o)
+      el.style.visibility = o < 0.015 ? 'hidden' : 'visible'
+    })
+
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const tick = () => {
+      if (document.hidden || !clockRef.current) return
+      const d = new Date()
+      clockRef.current.textContent =
+        `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${pad(d.getFullYear() % 100)} ` +
+        `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+    }
+    tick()
+    const clock = setInterval(tick, 1000)
+
+    const scramble = gsap.to(readyRef.current, {
+      duration: 1.4,
+      delay: 0.8,
+      scrambleText: { text: 'READY TO SCAN', chars: '01▮▯#/', speed: 0.4 },
+      ease: 'none',
+    })
+
+    return () => {
+      unsubscribe()
+      clearInterval(clock)
+      scramble.kill()
+    }
+  }, [])
+
+  return (
+    <div
+      ref={boxRef}
+      aria-hidden="true"
+      className="hud-mono pointer-events-none absolute left-6 top-24 z-10 hidden flex-col gap-1 text-[0.68rem] text-muted/60 md:flex"
+    >
+      <span>TREEMAP V2.1 · LOCAL-ONLY</span>
+      <span ref={clockRef} />
+      <span className="text-teal/80">
+        <span className="hud-cursor" aria-hidden="true">
+          ▮
+        </span>{' '}
+        <span ref={readyRef}>▯▯▯▯▯ ▯▯ ▯▯▯▯</span>
+      </span>
     </div>
   )
 }
