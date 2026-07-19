@@ -91,6 +91,7 @@ export default function StatsWall({ reduced }: { reduced: boolean }) {
             key={stat.value}
             data-stat
             data-speed={i % 2 === 0 ? '0.97' : '1.03'}
+            role="group"
             aria-label={`${stat.value} — ${stat.label}`}
             className={i % 2 === 0 ? 'text-left' : 'text-left sm:text-right'}
           >

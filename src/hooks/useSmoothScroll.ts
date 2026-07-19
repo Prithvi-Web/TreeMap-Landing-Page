@@ -16,6 +16,12 @@ import { ScrollSmoother } from '../lib/gsapSetup'
 export function useSmoothScroll(enabled: boolean) {
   useLayoutEffect(() => {
     if (!enabled) return
+    // Touch-only devices: skip the smoother entirely. With smoothTouch off it
+    // adds nothing there, but it still writes an explicit body height and
+    // clamps scrolling against its own viewport math — which runs afoul of
+    // mobile URL-bar resizing (the page stops ~70px short of the footer).
+    // Native scrolling + CSS scroll-behavior already feel right on touch.
+    if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) return
 
     // The smoother supplies the glide; CSS smooth-behavior on top of it would
     // double-ease anchor jumps (#get, #top). Native-instant jump + smoother

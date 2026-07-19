@@ -190,8 +190,11 @@ body {
 }
 
 /* Marquee outline row (§Kinetic 3): hollow stroke type, same weight as the
-   gradient row above it. */
-.marquee-outline {
+   gradient row above it. Drawn via ::before from data-text so no real text
+   node carries a transparent fill (audit tooling reads that as a contrast
+   failure even in aria-hidden decoration). */
+.marquee-outline-item::before {
+  content: attr(data-text);
   color: transparent;
   -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.22);
 }

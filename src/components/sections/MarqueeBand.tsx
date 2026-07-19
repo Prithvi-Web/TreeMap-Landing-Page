@@ -58,6 +58,14 @@ export default function MarqueeBand({ reduced }: { reduced: boolean }) {
       </span>
     ))
 
+  // The hollow row draws its text via ::before (see .marquee-outline-item):
+  // transparent-fill stroke text as a real text node reads as a contrast
+  // failure to audit tooling, even inside aria-hidden decoration.
+  const repeatOutline = (phrase: string) =>
+    Array.from({ length: 6 }, (_, i) => (
+      <span key={i} className="marquee-outline-item shrink-0" data-text={`${phrase} · `} />
+    ))
+
   return (
     <section
       ref={sectionRef}
@@ -76,9 +84,9 @@ export default function MarqueeBand({ reduced }: { reduced: boolean }) {
         <div
           ref={rowBRef}
           aria-hidden="true"
-          className="marquee-row marquee-outline mt-3 flex whitespace-nowrap font-display text-[clamp(3rem,7.5vw,6.5rem)] font-bold leading-[1.05] tracking-tight will-change-transform"
+          className="marquee-row mt-3 flex whitespace-nowrap font-display text-[clamp(3rem,7.5vw,6.5rem)] font-bold leading-[1.05] tracking-tight will-change-transform"
         >
-          {repeat(ROW_B)}
+          {repeatOutline(ROW_B)}
         </div>
       </div>
     </section>
