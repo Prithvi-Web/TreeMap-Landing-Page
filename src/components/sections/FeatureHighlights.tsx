@@ -117,8 +117,13 @@ export default function FeatureHighlights({ reduced }: { reduced: boolean }) {
       </div>
 
       <div className="mx-auto max-w-2xl text-center">
-        <p data-eyebrow className="eyebrow">
-          Beyond the map
+        {/* Real text for AT; the scramble runs on the aria-hidden twin so the
+            accessible name never churns through filler glyphs. */}
+        <p className="eyebrow">
+          <span className="sr-only">Beyond the map</span>
+          <span data-eyebrow aria-hidden="true">
+            Beyond the map
+          </span>
         </p>
         <h2 id="features-heading" className="h2-section mt-4">
           Built for the mess you actually have.

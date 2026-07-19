@@ -26,12 +26,14 @@ export default function Footer({ reduced }: { reduced: boolean }) {
           scrollTrigger: { trigger: footer, start: 'top bottom', end: 'bottom bottom', scrub: true },
         },
       )
+      // Plain opacity (not autoAlpha): the row holds three links, and a
+      // visibility:hidden rewind would drop keyboard focus (review finding).
       gsap.fromTo(
         '[data-footer-row]',
-        { y: 34, autoAlpha: 0 },
+        { y: 34, opacity: 0 },
         {
           y: 0,
-          autoAlpha: 1,
+          opacity: 1,
           ease: 'power2.out',
           scrollTrigger: { trigger: footer, start: 'top bottom', end: 'bottom bottom', scrub: true },
         },

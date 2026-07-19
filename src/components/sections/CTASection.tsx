@@ -23,14 +23,16 @@ export default function CTASection({ reduced }: { reduced: boolean }) {
     if (!section) return
     let split: SplitText | null = null
     const ctx = gsap.context(() => {
-      // Card entrance: scale + rise, scrubbed so it rewinds.
+      // Card entrance: scale + rise, scrubbed so it rewinds. Plain opacity,
+      // not autoAlpha — a visibility:hidden rewind would drop keyboard focus
+      // held by the buttons/inputs inside (review finding).
       gsap.fromTo(
         '[data-cta-card]',
-        { scale: 0.94, y: 56, autoAlpha: 0 },
+        { scale: 0.94, y: 56, opacity: 0 },
         {
           scale: 1,
           y: 0,
-          autoAlpha: 1,
+          opacity: 1,
           ease: 'power2.out',
           scrollTrigger: { trigger: section, start: 'top 95%', end: 'top 55%', scrub: true },
         },
@@ -54,6 +56,8 @@ export default function CTASection({ reduced }: { reduced: boolean }) {
       }
 
       // Buttons + links: quick one-shot cascade once the card is readable.
+      // Plays once and STAYS — reversing autoAlpha on focusable controls
+      // dumps keyboard focus to <body> mid-tab (review finding).
       gsap.from('[data-cta-cascade] > *', {
         y: 22,
         autoAlpha: 0,
@@ -63,7 +67,7 @@ export default function CTASection({ reduced }: { reduced: boolean }) {
         scrollTrigger: {
           trigger: section,
           start: 'top 62%',
-          toggleActions: 'play none none reverse',
+          toggleActions: 'play none none none',
         },
       })
     }, section)

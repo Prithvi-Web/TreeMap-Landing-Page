@@ -37,6 +37,9 @@ export default function Nav({ reduced = false }: { reduced?: boolean }) {
 
   return (
     <header
+      // Ducked links stay tabbable (transform ≠ display:none), so the first
+      // Tab while hidden must bring the bar back — WCAG 2.4.7 (review finding).
+      onFocus={() => setHidden(false)}
       className={`fixed inset-x-0 top-0 z-40 px-4 pt-3 transition-transform duration-300 ease-out sm:px-6 ${
         hidden ? '-translate-y-[115%]' : 'translate-y-0'
       }`}
