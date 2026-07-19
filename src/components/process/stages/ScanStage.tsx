@@ -19,7 +19,7 @@ const RING_RADII = [0.52, 0.92, 1.32, 1.66, 1.9]
 const RING_SEGMENTS = 96
 const TICK_COUNT = 72
 const PARTICLE_COUNT = 1000
-const SWEEP_TURNS = 2.5
+const SWEEP_TURNS = 3.5
 /** Wedge trailing the arm, radians. */
 const WEDGE_ARC = 0.62
 const WEDGE_STEPS = 22
@@ -222,6 +222,8 @@ export default function ScanStage({ index }: { index: number }) {
     const time = clock.elapsedTime
     const aEase = easeOutCubic(active)
     root.scale.setScalar(0.72 + 0.28 * aEase)
+    // Outgoing scenes sink away instead of lingering over the newcomer.
+    root.position.z = -(1 - aEase) * 1.7
 
     // Idle drift keeps the platter alive between scroll ticks.
     if (platterRef.current) platterRef.current.rotation.z = -time * 0.03
@@ -245,7 +247,9 @@ export default function ScanStage({ index }: { index: number }) {
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       let delta = (beamLocal - assets.particleAngles[i]) % (Math.PI * 2)
       if (delta < 0) delta += Math.PI * 2
-      const glow = Math.exp(-delta * 2.1)
+      // Decay relaxes across the stage: early passes barely mark the disk,
+      // late passes leave it lit — the scan is completing.
+      const glow = Math.exp(-delta * (2.4 - p * 1.3))
       COL.copy(DIM).lerp(TEAL, Math.min(1, glow * 1.35))
       if (glow > 0.72) COL.lerp(WHITE, (glow - 0.72) * 2.4)
       colors[i * 3] = COL.r

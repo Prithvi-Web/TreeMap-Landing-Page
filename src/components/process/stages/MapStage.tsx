@@ -143,10 +143,12 @@ export default function MapStage({ index }: { index: number }) {
     const time = clock.elapsedTime
     const aEase = easeOutCubic(active)
     root.scale.setScalar(0.8 + 0.2 * aEase)
+    root.position.z = -(1 - aEase) * 1.7
     material.opacity = aEase
 
-    // Assembly rides the front ~80% of the stage; the tail is settled idle.
-    const assembly = clamp01(p * 1.25)
+    // Assembly spans essentially the whole window — the last stragglers are
+    // still landing as the crossfade begins, so the scene never sits done.
+    const assembly = clamp01(p * 1.08)
 
     for (let i = 0; i < TILE_COUNT; i++) {
       const rec = records[i]
@@ -158,8 +160,9 @@ export default function MapStage({ index }: { index: number }) {
         lerp(rec.chaos.x, rec.target.x, move),
         lerp(rec.chaos.y, rec.target.y, move),
         lerp(rec.chaos.z, rec.target.z, move) +
-          // Settled micro-bob so the finished map keeps breathing.
-          (local >= 1 ? Math.sin(time * 1.15 + rec.bobPhase) * 0.014 : 0),
+          // Settled wave: a ripple sweeps the map by column so the finished
+          // layout visibly breathes instead of freezing.
+          (local >= 1 ? Math.sin(time * 1.3 + rec.target.x * 1.6 + rec.bobPhase * 0.3) * 0.03 : 0),
       )
       DUMMY.rotation.set(
         rec.chaosRot.x * (1 - move),

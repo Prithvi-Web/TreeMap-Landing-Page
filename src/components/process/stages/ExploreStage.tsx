@@ -201,6 +201,7 @@ export default function ExploreStage({ index }: { index: number }) {
     const time = clock.elapsedTime
     const aEase = 1 - (1 - active) * (1 - active)
     root.scale.setScalar((0.78 + 0.22 * aEase) * (1 + 0.015 * Math.sin(time * 0.8)))
+    root.position.z = -(1 - aEase) * 1.7
 
     // Two dives across the stage.
     const dv = p * 2
@@ -234,8 +235,8 @@ export default function ExploreStage({ index }: { index: number }) {
 
       if (isParent) {
         // The generation flying past the viewer thins out as it grows.
-        gen.fillMaterial.opacity = 0.14 * (1 - d * 0.92) * aEase
-        gen.lineMaterial.opacity = 0.75 * (1 - smoothstep(0.62, 1, d)) * aEase
+        gen.fillMaterial.opacity = 0.21 * (1 - d * 0.92) * aEase
+        gen.lineMaterial.opacity = 0.88 * (1 - smoothstep(0.62, 1, d)) * aEase
         // Target telegraph: amber pulse before the dive commits, a rose
         // flash as the viewer punches through.
         const anticipation = 1 - smoothstep(0.45, 0.72, d)
@@ -245,8 +246,8 @@ export default function ExploreStage({ index }: { index: number }) {
         gen.pulseMaterial.color.copy(COL)
         gen.pulseMaterial.opacity = (pulse + punch * 0.3) * aEase
       } else if (isChild) {
-        gen.fillMaterial.opacity = 0.14 * smoothstep(0.12, 0.5, d) * aEase
-        gen.lineMaterial.opacity = 0.75 * smoothstep(0.05, 0.4, d) * aEase
+        gen.fillMaterial.opacity = 0.21 * smoothstep(0.12, 0.5, d) * aEase
+        gen.lineMaterial.opacity = 0.88 * smoothstep(0.05, 0.4, d) * aEase
         gen.pulseMaterial.opacity = 0
       } else {
         gen.fillMaterial.opacity = 0

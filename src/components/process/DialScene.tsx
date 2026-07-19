@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
-import { Canvas, useThree } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { processState } from './processState'
 import ScanStage from './stages/ScanStage'
 import MapStage from './stages/MapStage'
 import ExploreStage from './stages/ExploreStage'
@@ -42,6 +43,7 @@ export default function DialScene({ frameloop }: { frameloop: 'always' | 'never'
       }}
     >
       <SizeGuard />
+      <ContinuousRig />
       <ScanStage index={0} />
       <MapStage index={1} />
       <ExploreStage index={2} />
@@ -49,6 +51,24 @@ export default function DialScene({ frameloop }: { frameloop: 'always' | 'never'
       <ReclaimStage index={4} />
     </Canvas>
   )
+}
+
+/**
+ * The user's verdict on v1 was "the animation stops after some point" — each
+ * scene finished its set piece early and idled. This rig guarantees the dial
+ * as a WHOLE never rests: the scene root breathes a slow orbit from wall time
+ * and leans with rail progress, and the camera dollies gently in and back out
+ * across the full pin. Per-scene choreography rides on top of it.
+ */
+function ContinuousRig() {
+  useFrame(({ scene, camera, clock }) => {
+    const t = processState.progress
+    const time = clock.elapsedTime
+    scene.rotation.y = Math.sin(t * Math.PI * 2) * 0.09 + Math.sin(time * 0.16) * 0.05
+    scene.rotation.x = Math.sin(t * Math.PI * 3) * 0.045 + Math.cos(time * 0.13) * 0.03
+    camera.position.z = 8.4 - Math.sin(t * Math.PI) * 0.55
+  })
+  return null
 }
 
 /**

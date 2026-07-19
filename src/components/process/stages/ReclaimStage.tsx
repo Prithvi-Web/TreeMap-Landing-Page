@@ -232,6 +232,7 @@ export default function ReclaimStage({ index }: { index: number }) {
     const time = clock.elapsedTime
     const aEase = 1 - (1 - active) * (1 - active)
     root.scale.setScalar(0.78 + 0.22 * aEase)
+    root.position.z = -(1 - aEase) * 1.7
     assets.material.opacity = aEase
 
     // Phases: fragment 0.14→0.6 · re-layout 0.35→0.82 · gauge 0.42→0.96.

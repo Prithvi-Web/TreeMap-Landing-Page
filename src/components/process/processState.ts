@@ -23,7 +23,7 @@ export type StageWindow = {
 
 // Each stage owns 1/STAGE_COUNT of the rail; neighbours crossfade over this
 // fraction of a slice on each side of the boundary.
-const FADE = 0.22
+const FADE = 0.15
 
 /**
  * Compute a stage's window from rail progress. Stage i's plateau spans its

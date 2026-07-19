@@ -55,7 +55,7 @@ const STAGES = [
 ]
 
 const TICKS = 72
-const FADE = 0.22 / STAGE_COUNT
+const FADE = 0.15 / STAGE_COUNT
 
 function easeOutCubic(v: number): number {
   const inv = 1 - v
@@ -162,7 +162,9 @@ export default function ProcessRail({ reduced }: { reduced: boolean }) {
         }
         const tag = tagRefs.current[i]
         if (tag) {
-          tag.style.opacity = String(aEase)
+          const o = aEase * aEase
+          tag.style.opacity = String(o)
+          tag.style.visibility = o < 0.22 ? 'hidden' : 'visible'
           tag.style.transform = `translateX(${((1 - aEase) * -16).toFixed(2)}px)`
         }
         const rule = ruleRefs.current[i]
@@ -172,9 +174,13 @@ export default function ProcessRail({ reduced }: { reduced: boolean }) {
         }
         const copy = copyRefs.current[i]
         if (copy) {
-          copy.style.opacity = String(aEase)
-          copy.style.transform = `translateY(${((1 - aEase) * 26).toFixed(2)}px)`
-          copy.style.visibility = active < 0.004 ? 'hidden' : 'visible'
+          // Squared curve + a hard floor: the outgoing paragraph is gone
+          // before the incoming one is legible — overlapping half-faded copy
+          // read as a rendering bug in user testing.
+          const o = aEase * aEase
+          copy.style.opacity = String(o)
+          copy.style.transform = `translateY(${((1 - aEase) * 34).toFixed(2)}px)`
+          copy.style.visibility = o < 0.22 ? 'hidden' : 'visible'
         }
       }
 
@@ -201,9 +207,10 @@ export default function ProcessRail({ reduced }: { reduced: boolean }) {
           const trigger = ScrollTrigger.create({
             trigger: pin,
             start: 'top top',
-            end: `+=${desktop ? 4600 : 3000}`,
+            end: `+=${desktop ? 7500 : 4500}`,
             pin: true,
-            scrub: 1.2,
+            // 1.5 matches the story pin — the pace the user tuned by hand.
+            scrub: 1.5,
             anticipatePin: 1,
             invalidateOnRefresh: true,
             onUpdate: (self) => apply(self.progress),

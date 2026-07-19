@@ -340,9 +340,25 @@ body {
   animation: orbit-spin 38s linear infinite;
 }
 
+@keyframes vg-spin-svg {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.vg-spin-svg {
+  animation-name: vg-spin-svg;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .vg-spin,
   .vg-pulse,
+  .vg-spin-svg,
   .orbit-spin {
     animation: none;
   }

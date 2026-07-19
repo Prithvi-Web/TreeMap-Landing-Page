@@ -8,9 +8,11 @@ import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin'
 // (All of these are free since GSAP 3.13.)
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother, SplitText, ScrambleTextPlugin)
 
-// Dev-only: lets QA tooling reach the ticker (e.g. lagSmoothing(0) so
-// screenshots reflect wall-clock state in rAF-throttled embedded previews).
-if (import.meta.env.DEV) {
+// QA access to the ticker — dev builds always, prod only behind ?qa (the same
+// opt-in as the dial's scene hooks). Driven/embedded browsers starve rAF
+// between interactions, freezing the smoother and pinned sections mid-flight;
+// QA tooling calls gsap.ticker.tick() to advance the whole system manually.
+if (import.meta.env.DEV || new URLSearchParams(window.location.search).has('qa')) {
   ;(window as unknown as Record<string, unknown>).gsap = gsap
 }
 

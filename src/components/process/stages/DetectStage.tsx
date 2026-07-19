@@ -18,8 +18,8 @@ const CUBE_SIZE = 0.12
 const CURVE_POINTS = 48
 /** Pair events 0..5, triple event 6. */
 const EVENT_COUNT = 7
-const EVENT_SPAN = 0.115
-const FIRST_EVENT = 0.06
+const EVENT_SPAN = 0.125
+const FIRST_EVENT = 0.05
 
 const DIM = new THREE.Color('#232f4c')
 const DIMMER = new THREE.Color('#161f36')
@@ -197,6 +197,7 @@ export default function DetectStage({ index }: { index: number }) {
     const time = clock.elapsedTime
     const aEase = 1 - (1 - active) * (1 - active)
     root.scale.setScalar(0.78 + 0.22 * aEase)
+    root.position.z = -(1 - aEase) * 1.7
     root.rotation.y = Math.sin(time * 0.22) * 0.07
     assets.material.opacity = aEase
 
@@ -228,8 +229,8 @@ export default function DetectStage({ index }: { index: number }) {
     const pulses = assets.pulseAttr.array as Float32Array
     for (let k = 0; k < assets.edges.length; k++) {
       const edge = assets.edges[k]
-      const start = FIRST_EVENT + edge.event * EVENT_SPAN + 0.03
-      const draw = smoothstep(start, start + 0.07, p)
+      const start = FIRST_EVENT + edge.event * EVENT_SPAN + 0.035
+      const draw = smoothstep(start, start + 0.09, p)
       edge.geometry.setDrawRange(0, Math.floor(CURVE_POINTS * draw))
       COL.copy(AMBER).lerp(ROSE, smoothstep(start + 0.05, start + 0.1, p))
       edge.material.color.copy(COL)

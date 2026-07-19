@@ -104,6 +104,7 @@ export default function ViewsGallery({ reduced }: { reduced: boolean }) {
       dash: SVGPathElement[]
       dot: HTMLElement | null
       tag: HTMLElement | null
+      fill: HTMLElement | null
       barsL: HTMLElement[]
       barsR: HTMLElement[]
     }
@@ -119,6 +120,7 @@ export default function ViewsGallery({ reduced }: { reduced: boolean }) {
         dash: Array.from(root.querySelectorAll<SVGPathElement>('[data-dash]')),
         dot: root.querySelector<HTMLElement>('[data-dot]'),
         tag: root.querySelector<HTMLElement>('[data-tag]'),
+        fill: root.querySelector<HTMLElement>('[data-fill]'),
         barsL: Array.from(root.querySelectorAll<HTMLElement>('[data-bar-l]')),
         barsR: Array.from(root.querySelectorAll<HTMLElement>('[data-bar-r]')),
       })
@@ -173,6 +175,10 @@ export default function ViewsGallery({ reduced }: { reduced: boolean }) {
           rig.tag.style.opacity = String(on)
           rig.tag.style.transform = `translateY(${(1 - on) * 8}px) rotate(${(1 - on) * -6}deg)`
         }
+        if (rig.fill) {
+          // The reclaimable bar sweeps in late, after its rows have landed.
+          rig.fill.style.transform = `scaleX(${(0.62 * clamp01((focus - 0.4) / 0.5)).toFixed(3)})`
+        }
         for (let k = 0; k < rig.barsL.length; k++) {
           const h = 1 - (1 - COMPARE_BARS[k]) * fEase - 0.28 * fEase
           rig.barsL[k].style.transform = `scaleY(${Math.max(0.08, h * COMPARE_BARS[k]).toFixed(3)})`
@@ -209,9 +215,10 @@ export default function ViewsGallery({ reduced }: { reduced: boolean }) {
           scrollTrigger: {
             trigger: pin,
             start: 'top top',
-            end: () => `+=${distance() + 400}`,
+            // ~1.9x the track distance: the panels glide instead of whipping past.
+            end: () => `+=${Math.round(distance() * 1.9) + 600}`,
             pin: true,
-            scrub: 1.2,
+            scrub: 1.5,
             anticipatePin: 1,
             invalidateOnRefresh: true,
             onRefresh: measure,
@@ -271,64 +278,145 @@ export default function ViewsGallery({ reduced }: { reduced: boolean }) {
             ))}
           </div>
         )
-      case 1: // Sunburst rings
+      case 1: // Sunburst rings — SVG stroke-dash donuts. (The first cut used
+        // conic-gradients under a CSS radial mask; the mask silently failed in
+        // testing and the rings rendered as giant filled pies. SVG cannot fail
+        // that way: the ring IS the stroke.)
         return (
-          <div data-vignette className="relative h-full w-full" aria-hidden="true">
-            {[
-              { size: '92%', from: 0, colors: '#2dd4bf 0 14%, transparent 14% 18%, #fbbf24 18% 30%, transparent 30% 34%, #2dd4bf 34% 52%, transparent 52% 56%, #f43f5e 56% 66%, transparent 66% 70%, #2dd4bf 70% 88%, transparent 88%', dur: '64s', dir: 'normal' },
-              { size: '62%', from: 40, colors: '#fbbf24 0 22%, transparent 22% 27%, #2dd4bf 27% 55%, transparent 55% 60%, #f43f5e 60% 74%, transparent 74%', dur: '48s', dir: 'reverse' },
-              { size: '34%', from: 130, colors: '#2dd4bf 0 45%, transparent 45% 52%, #fbbf24 52% 78%, transparent 78%', dur: '36s', dir: 'normal' },
-            ].map((ring, k) => (
-              <span
-                key={k}
-                data-ring={reduced ? undefined : ''}
-                className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ${reduced ? '' : 'vg-spin'}`}
-                style={{
-                  width: ring.size,
-                  aspectRatio: '1',
-                  background: `conic-gradient(from ${ring.from}deg, ${ring.colors})`,
-                  WebkitMask: 'radial-gradient(closest-side, transparent 62%, black 63%)',
-                  mask: 'radial-gradient(closest-side, transparent 62%, black 63%)',
-                  animationDuration: ring.dur,
-                  animationDirection: ring.dir as 'normal' | 'reverse',
-                  opacity: reduced ? 1 : undefined,
-                }}
-              />
-            ))}
-            <span className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal" />
-          </div>
-        )
-      case 2: // Duplicates
-        return (
-          <div data-vignette className="relative flex h-full w-full items-center justify-center" aria-hidden="true">
-            <svg viewBox="0 0 200 100" className="absolute inset-0 h-full w-full">
-              <path
-                data-dash={reduced ? undefined : ''}
-                data-len="180"
-                d="M40,32 C 70,4 130,4 160,32"
-                fill="none"
-                stroke={accent}
-                strokeWidth="1.2"
-                strokeDasharray="180"
-                strokeDashoffset={reduced ? 0 : 180}
-              />
-            </svg>
-            <div className="flex w-full items-end justify-between px-[8%] pb-[12%]">
-              {['IMG_4021.heic', 'IMG_4021 copy.heic'].map((name) => (
-                <span key={name} className="glass-soft hud-mono rounded-lg px-3 py-2 text-[0.6rem] text-white/85">
-                  {name}
-                </span>
+          <div data-vignette className="relative h-full w-full overflow-hidden" aria-hidden="true">
+            <svg viewBox="0 0 200 200" className="mx-auto h-full" style={{ maxWidth: '100%' }}>
+              {[
+                { r: 78, w: 19, c: '#2dd4bf', dash: '88 26 120 34 150 72', dur: '64s', dir: 'normal', o: 0.85 },
+                { r: 52, w: 17, c: '#fbbf24', dash: '70 24 96 40 60 37', dur: '46s', dir: 'reverse', o: 0.9 },
+                { r: 30, w: 15, c: '#f43f5e', dash: '48 26 60 54', dur: '34s', dir: 'normal', o: 0.9 },
+              ].map((ring, k) => (
+                <g
+                  key={k}
+                  data-ring={reduced ? undefined : ''}
+                  className={reduced ? undefined : 'vg-spin-svg'}
+                  style={{
+                    transformOrigin: '100px 100px',
+                    animationDuration: ring.dur,
+                    animationDirection: ring.dir as 'normal' | 'reverse',
+                    opacity: reduced ? 1 : undefined,
+                  }}
+                >
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r={ring.r}
+                    fill="none"
+                    stroke={ring.c}
+                    strokeWidth={ring.w}
+                    strokeDasharray={ring.dash}
+                    opacity={ring.o}
+                  />
+                </g>
               ))}
-            </div>
-            <span
-              data-tag={reduced ? undefined : ''}
-              className="hud-mono absolute left-1/2 top-[38%] -translate-x-1/2 rounded-md border px-2 py-1 text-[0.62rem]"
-              style={{ borderColor: accent, color: accent, opacity: reduced ? 1 : 0 }}
-            >
-              2× → 1× · SHA-256
+              <circle cx="100" cy="100" r="7" fill="#2dd4bf" />
+              <circle cx="100" cy="100" r="2.5" fill="#0a0f1c" />
+            </svg>
+            <span className="hud-mono absolute bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap text-[0.56rem] text-muted/60">
+              DEPTH 0 — 3 · ROOT AT CENTER
             </span>
           </div>
         )
+      case 2: {
+        // Duplicates — a whole group resolution, not two lonely chips: three
+        // copies of the same shot (keep the newest, trash the rest), the
+        // arc that proved them identical, the group ledger, and the payoff bar.
+        const thumbs = [
+          { name: 'IMG_4021.heic', note: 'KEEP · NEWEST', ring: '#2dd4bf', grad: 'linear-gradient(135deg, #134e4a 0%, #2dd4bf 55%, #fbbf24 130%)' },
+          { name: 'IMG_4021 copy.heic', note: 'TRASH', ring: '#f43f5e', grad: 'linear-gradient(135deg, #134e4a 0%, #2dd4bf 55%, #fbbf24 130%)' },
+          { name: 'IMG_4021 (1).heic', note: 'TRASH', ring: '#f43f5e', grad: 'linear-gradient(135deg, #134e4a 0%, #2dd4bf 55%, #fbbf24 130%)' },
+        ]
+        const ledger = [
+          ['group 07', '3 files', '2.4 GB'],
+          ['group 12', '2 files', '1.1 GB'],
+          ['group 19', '4 files', '3.8 GB'],
+          ['group 23', '2 files', '0.9 GB'],
+        ]
+        return (
+          <div data-vignette className="relative flex h-full w-full gap-[6%] overflow-hidden px-[4%] py-[3%]" aria-hidden="true">
+            {/* The group being resolved. */}
+            <div className="flex min-w-0 flex-1 flex-col justify-center gap-2.5">
+              {thumbs.map((t, k) => (
+                <div
+                  key={t.name}
+                  data-tile={reduced ? undefined : ''}
+                  className="flex min-w-0 items-center gap-3"
+                  style={reduced ? undefined : { opacity: 0 }}
+                >
+                  <span
+                    className="h-11 w-14 shrink-0 rounded-lg border"
+                    style={{
+                      background: t.grad,
+                      borderColor: t.ring,
+                      filter: k === 0 ? 'none' : 'saturate(0.45) brightness(0.75)',
+                    }}
+                  />
+                  <span className="hud-mono min-w-0 flex-1 truncate text-[0.6rem] text-white/85">{t.name}</span>
+                  <span className="hud-mono shrink-0 text-[0.54rem]" style={{ color: t.ring }}>
+                    {t.note}
+                  </span>
+                </div>
+              ))}
+              {/* The payoff. */}
+              <div className="mt-2">
+                <div className="hud-mono flex justify-between text-[0.56rem] text-muted/70">
+                  <span>RECLAIMABLE</span>
+                  <span className="text-rose">11.2 GB</span>
+                </div>
+                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/10">
+                  <span
+                    data-fill={reduced ? undefined : ''}
+                    className="block h-full origin-left rounded-full"
+                    style={{
+                      background: 'linear-gradient(90deg, #f43f5e, #fbbf24)',
+                      transform: reduced ? 'scaleX(0.62)' : 'scaleX(0)',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* The proof + the ledger. */}
+            <div className="relative flex w-[44%] shrink-0 flex-col justify-center gap-1.5">
+              <svg viewBox="0 0 100 40" className="absolute -left-[24%] top-[8%] h-[34%] w-[52%] overflow-visible">
+                <path
+                  data-dash={reduced ? undefined : ''}
+                  data-len="120"
+                  d="M4,34 C 30,2 74,2 96,30"
+                  fill="none"
+                  stroke={accent}
+                  strokeWidth="1.6"
+                  strokeDasharray="120"
+                  strokeDashoffset={reduced ? 0 : 120}
+                />
+              </svg>
+              <span
+                data-tag={reduced ? undefined : ''}
+                className="hud-mono mb-1 self-start rounded-md border px-2 py-1 text-[0.58rem]"
+                style={{ borderColor: accent, color: accent, opacity: reduced ? 1 : 0 }}
+              >
+                3× → 1× · SHA-256 MATCH
+              </span>
+              {ledger.map(([g, files, size]) => (
+                <div
+                  key={g}
+                  data-tile={reduced ? undefined : ''}
+                  className="hud-mono flex justify-between gap-2 rounded-md bg-white/[0.04] px-2.5 py-1.5 text-[0.56rem] text-muted/80"
+                  style={reduced ? undefined : { opacity: 0 }}
+                >
+                  <span>{g}</span>
+                  <span>{files}</span>
+                  <span className="text-amber">{size}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      }
       case 3: // Trends
         return (
           <div data-vignette className="relative h-full w-full" aria-hidden="true">
@@ -408,7 +496,10 @@ export default function ViewsGallery({ reduced }: { reduced: boolean }) {
         className="marquee-outline-item pointer-events-none absolute -top-14 left-2 select-none font-bold"
         style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(5rem, 11vw, 9rem)', lineHeight: 1 }}
       />
-      <div className="glass relative flex h-[58vh] min-h-[24rem] flex-col overflow-hidden p-6 md:p-8">
+      <div
+        className="glass relative flex h-[58vh] min-h-[24rem] flex-col overflow-hidden p-6 md:p-8"
+        style={{ background: 'rgba(11, 18, 32, 0.78)' }}
+      >
         <div className="relative min-h-0 flex-1">{vignette(i)}</div>
         <div className="mt-6 flex items-end justify-between gap-4">
           <div>
