@@ -382,18 +382,6 @@ export default function ViewsGallery({ reduced }: { reduced: boolean }) {
 
             {/* The proof + the ledger. */}
             <div className="relative flex w-[44%] shrink-0 flex-col justify-center gap-1.5">
-              <svg viewBox="0 0 100 40" className="absolute -left-[24%] top-[8%] h-[34%] w-[52%] overflow-visible">
-                <path
-                  data-dash={reduced ? undefined : ''}
-                  data-len="120"
-                  d="M4,34 C 30,2 74,2 96,30"
-                  fill="none"
-                  stroke={accent}
-                  strokeWidth="1.6"
-                  strokeDasharray="120"
-                  strokeDashoffset={reduced ? 0 : 120}
-                />
-              </svg>
               <span
                 data-tag={reduced ? undefined : ''}
                 className="hud-mono mb-1 self-start rounded-md border px-2 py-1 text-[0.58rem]"

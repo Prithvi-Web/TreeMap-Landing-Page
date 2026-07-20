@@ -25,6 +25,7 @@ export default function Experience({ profile, reduced }: { profile: SceneProfile
       onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}
     >
       <fogExp2 attach="fog" args={['#0a0f1c', profile.fogDensity]} />
+      <ContextGuard />
       <VisibilityInvalidate />
       {import.meta.env.DEV && <DevHiddenTicker />}
       <CameraRig profile={profile} reduced={reduced} />
@@ -33,6 +34,29 @@ export default function Experience({ profile, reduced }: { profile: SceneProfile
       <GridFloor reduced={reduced} />
     </Canvas>
   )
+}
+
+/**
+ * GPU context loss (memory pressure, driver resets, waking from sleep) kills
+ * the canvas permanently unless the lost event's default is prevented — only
+ * then does the browser fire `webglcontextrestored` and let three.js rebuild.
+ * Without this, the story field goes black at random and stays black.
+ */
+function ContextGuard() {
+  const gl = useThree((s) => s.gl)
+  const invalidate = useThree((s) => s.invalidate)
+  useEffect(() => {
+    const canvas = gl.domElement
+    const onLost = (event: Event) => event.preventDefault()
+    const onRestored = () => invalidate()
+    canvas.addEventListener('webglcontextlost', onLost)
+    canvas.addEventListener('webglcontextrestored', onRestored)
+    return () => {
+      canvas.removeEventListener('webglcontextlost', onLost)
+      canvas.removeEventListener('webglcontextrestored', onRestored)
+    }
+  }, [gl, invalidate])
+  return null
 }
 
 /**

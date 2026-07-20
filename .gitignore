@@ -7,3 +7,4 @@ dist
 .vercel
 *.log
 node_modules/.tmp
+.claude/

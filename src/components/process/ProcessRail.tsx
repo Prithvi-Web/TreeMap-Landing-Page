@@ -1,17 +1,20 @@
-import { Suspense, lazy, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { gsap, ScrollTrigger } from '../../lib/gsapSetup'
 import { processState, STAGE_COUNT, stageWindow } from './processState'
 import { clamp01, smoothstep } from '../../lib/stages'
-
-// three.js stays out of the main bundle — same rule as the story's Experience.
-const DialScene = lazy(() => import('./DialScene'))
+import ProcessDial from './ProcessDial'
 
 /**
  * The PIPELINE rail (cinetica's process dial, in TreeMap's voice): a pinned
- * viewport where five stages trade places — giant stage word left, a ticked
- * dial around a WebGL scene center, stage copy right. One ScrollTrigger owns
- * the pin and writes processState.progress; the 3D stages, the tick ring, the
- * words and the copy all read that single value, so nothing can drift.
+ * viewport where five stages trade places — giant stage word left, the SVG
+ * dial instrument center, stage copy right. One ScrollTrigger owns the pin
+ * and writes processState.progress; the dial, the words and the copy all read
+ * that single value, so nothing can drift.
+ *
+ * v2: the dial is pure SVG (see ProcessDial). The old WebGL mini-canvas was
+ * the page's one unreliable organ — sizing races, lazy chunks mid-pin, a
+ * second GL context — and every "renders nothing / breaks randomly" report
+ * traced back to it. DOM cannot fail those ways.
  *
  * Calm tier: the same five stages as a static, always-visible list.
  */
@@ -54,7 +57,6 @@ const STAGES = [
   },
 ]
 
-const TICKS = 72
 const FADE = 0.15 / STAGE_COUNT
 
 function easeOutCubic(v: number): number {
@@ -65,8 +67,6 @@ function easeOutCubic(v: number): number {
 export default function ProcessRail({ reduced }: { reduced: boolean }) {
   const sectionRef = useRef<HTMLElement>(null)
   const pinRef = useRef<HTMLDivElement>(null)
-  const tickRefs = useRef<Array<SVGLineElement | null>>([])
-  const ringRef = useRef<SVGGElement>(null)
   const wordRefs = useRef<Array<HTMLSpanElement | null>>([])
   const charRefs = useRef<Map<number, HTMLElement[]>>(new Map())
   const copyRefs = useRef<Array<HTMLDivElement | null>>([])
@@ -76,27 +76,6 @@ export default function ProcessRail({ reduced }: { reduced: boolean }) {
   const pctRef = useRef<HTMLSpanElement>(null)
   const lastStage = useRef(-1)
   const lastPct = useRef(-1)
-
-  // The canvas mounts once the rail approaches and then stays; far away it
-  // idles at frameloop="never" instead of re-paying WebGL context setup.
-  const [canvasMounted, setCanvasMounted] = useState(false)
-  const [canvasLive, setCanvasLive] = useState(false)
-
-  // R3F defers GL creation until ResizeObserver delivers a first measurement,
-  // and occluded/embedded windows can starve RO indefinitely (the Liquid Glass
-  // lesson) — leaving a healthy scene graph with zero pixels. Its measurer
-  // also listens for window resize, so a synthetic kick un-wedges it; real
-  // browsers just absorb an idempotent ScrollTrigger refresh.
-  useLayoutEffect(() => {
-    if (!canvasMounted) return
-    const kick = () => window.dispatchEvent(new Event('resize'))
-    const t1 = setTimeout(kick, 350)
-    const t2 = setTimeout(kick, 1400)
-    return () => {
-      clearTimeout(t1)
-      clearTimeout(t2)
-    }
-  }, [canvasMounted])
 
   useLayoutEffect(() => {
     if (reduced) return
@@ -110,32 +89,11 @@ export default function ProcessRail({ reduced }: { reduced: boolean }) {
       processState.progress = t
 
       // Duck the fixed story field while the dial owns the viewport — the
-      // settled treemap at full strength buries the stage scenes. Driven off
-      // the same t as everything else (a separate trigger fought matchMedia
-      // re-inits and lost), restoring across the last 8% of the pin.
+      // settled treemap at full strength buries the dial. Driven off the
+      // same t as everything else, restoring across the last 8% of the pin.
       if (sceneRoot) {
         const duck = smoothstep(0, 0.05, t) * (1 - smoothstep(0.92, 1, t))
-        sceneRoot.style.opacity = (1 - 0.86 * duck).toFixed(3)
-      }
-
-      // ---- Dial ring: slow rotation + sweep-fill ticks. ----
-      if (ringRef.current) {
-        ringRef.current.style.transform = `rotate(${(t * 90).toFixed(2)}deg)`
-      }
-      const lit = t * TICKS
-      for (let i = 0; i < TICKS; i++) {
-        const tick = tickRefs.current[i]
-        if (!tick) continue
-        if (i < lit - 1) {
-          tick.style.stroke = '#2dd4bf'
-          tick.style.strokeOpacity = '0.8'
-        } else if (i <= lit) {
-          tick.style.stroke = '#fbbf24'
-          tick.style.strokeOpacity = '1'
-        } else {
-          tick.style.stroke = '#1c2740'
-          tick.style.strokeOpacity = '0.9'
-        }
+        sceneRoot.style.opacity = (1 - 0.93 * duck).toFixed(3)
       }
 
       // ---- Words, tags, accent rules, copy — per-stage windows. ----
@@ -220,17 +178,6 @@ export default function ProcessRail({ reduced }: { reduced: boolean }) {
         },
       )
 
-      // Canvas lifecycle: mount as the rail nears, sleep when far away.
-      ScrollTrigger.create({
-        trigger: section,
-        start: 'top 160%',
-        end: 'bottom -60%',
-        onToggle: (self) => {
-          if (self.isActive) setCanvasMounted(true)
-          setCanvasLive(self.isActive)
-        },
-      })
-
     }, section)
 
     return () => ctx.revert()
@@ -248,46 +195,7 @@ export default function ProcessRail({ reduced }: { reduced: boolean }) {
 
   const dial = (
     <div className="relative aspect-square w-[min(66vw,30rem)] md:w-[min(46vh,30rem)]">
-      {/* Tick ring + crosshairs (decorative — the copy carries the meaning). */}
-      <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden="true">
-        <g ref={ringRef} style={{ transformOrigin: '50% 50%' }}>
-          {Array.from({ length: TICKS }, (_, i) => {
-            const a = (i / TICKS) * Math.PI * 2 - Math.PI / 2
-            const major = i % 6 === 0
-            const r0 = major ? 44.4 : 45.8
-            const r1 = 48.4
-            return (
-              <line
-                key={i}
-                ref={(el) => {
-                  tickRefs.current[i] = el
-                }}
-                x1={50 + Math.cos(a) * r0}
-                y1={50 + Math.sin(a) * r0}
-                x2={50 + Math.cos(a) * r1}
-                y2={50 + Math.sin(a) * r1}
-                stroke="#1c2740"
-                strokeWidth={major ? 0.55 : 0.35}
-              />
-            )
-          })}
-        </g>
-        <circle cx="50" cy="50" r="42.5" fill="none" stroke="#1c2740" strokeWidth="0.3" strokeOpacity="0.8" />
-        {[0, 90, 180, 270].map((deg) => {
-          const a = (deg * Math.PI) / 180
-          return (
-            <line
-              key={deg}
-              x1={50 + Math.cos(a) * 40.2}
-              y1={50 + Math.sin(a) * 40.2}
-              x2={50 + Math.cos(a) * 42.5}
-              y2={50 + Math.sin(a) * 42.5}
-              stroke="#3b4a6b"
-              strokeWidth="0.4"
-            />
-          )
-        })}
-      </svg>
+      <ProcessDial />
 
       {/* HUD framing. */}
       <span className="hud-mono absolute -top-1 left-1/2 -translate-x-1/2 text-[0.58rem] text-muted/50">
@@ -296,18 +204,9 @@ export default function ProcessRail({ reduced }: { reduced: boolean }) {
       <span className="hud-mono absolute -bottom-1 left-1/2 -translate-x-1/2 text-[0.58rem] text-muted/60">
         STAGE <span ref={stageNumRef}>01</span>&thinsp;/&thinsp;0{STAGE_COUNT}
       </span>
-      <span className="hud-mono absolute right-0 top-1/2 -translate-y-1/2 whitespace-nowrap text-[0.58rem] text-teal/70">
+      <span className="hud-mono absolute -right-2 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border border-white/5 bg-void/85 px-1.5 py-0.5 text-[0.58rem] text-teal/80">
         <span ref={pctRef}>000</span>%
       </span>
-
-      {/* The WebGL heart. */}
-      <div className="absolute inset-[8%]">
-        {canvasMounted && (
-          <Suspense fallback={null}>
-            <DialScene frameloop={canvasLive ? 'always' : 'never'} />
-          </Suspense>
-        )}
-      </div>
     </div>
   )
 
